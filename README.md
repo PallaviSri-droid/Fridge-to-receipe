@@ -251,12 +251,6 @@ implementation can be walked through, debugged, and extended; reviewing it befor
 is part of the submitter's own work (see `docs/TIME_LOG.md`). In-app, the runtime LLM provider
 is **Google Gemini** (`@google/genai`).
 
-## ⏱️ Time spent
-
-See `docs/TIME_LOG.md` for the honest account: the implementation was produced in a single
-AI-assisted session of roughly **45–50 minutes** of automated work on 2026-11-15. That figure
-is deliberately **not** inflated into a human-hours estimate — the submitter should add their
-own review/extension time before submitting.
 
 ## 📜 Originality & attribution
 
