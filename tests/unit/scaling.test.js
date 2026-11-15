@@ -62,6 +62,43 @@ describe('scaleRecipe', () => {
     expect(scaled.ingredients[0].originalName).toBe('rice');
     expect(scaled.ingredients[0].substitutedWith.name).toBe('quinoa');
   });
+
+  it('re-derives a swapped ingredient as "to buy"', () => {
+    const scaled = scaleRecipe(baseRecipe, 2, { i1: { name: 'quinoa', note: '' } });
+    expect(baseRecipe.ingredients[0].availability).toBe('available'); // base unchanged
+    expect(scaled.ingredients[0].availability).toBe('to_buy'); // swapped-in item must be bought
+    expect(scaled.ingredients[1].availability).toBe('available'); // untouched item keeps its state
+  });
+
+  it('keeps a swap as "available" when the user already has the substitute', () => {
+    // user has both rice (i1) and eggs (i2); swapping rice -> eggs should stay "available"
+    const scaled = scaleRecipe(baseRecipe, 2, { i1: { name: 'eggs', note: '' } });
+    expect(scaled.ingredients[0].availability).toBe('available');
+  });
+
+  it('rewrites step text to name the substitute, not the original', () => {
+    const recipe = {
+      ...baseRecipe,
+      steps: [{ id: 's1', stepNumber: 1, instruction: 'Rinse the rice, then simmer the rice.', durationMinutes: 5, tip: 'Fluff the rice.' }],
+    };
+    const scaled = scaleRecipe(recipe, 2, { i1: { name: 'quinoa', note: '' } });
+    expect(scaled.steps[0].instruction).toBe('Rinse the quinoa, then simmer the quinoa.');
+    expect(scaled.steps[0].tip).toBe('Fluff the quinoa.');
+    expect(recipe.steps[0].instruction).toContain('rice'); // base step untouched
+  });
+
+  it('handles reciprocal swaps in one pass without collapsing them', () => {
+    const recipe = {
+      ...baseRecipe,
+      ingredients: [
+        { id: 'a', name: 'spinach', quantity: 100, unit: 'g', kind: 'continuous', availability: 'available', optional: false, substitutions: [] },
+        { id: 'b', name: 'kale', quantity: 100, unit: 'g', kind: 'continuous', availability: 'available', optional: false, substitutions: [] },
+      ],
+      steps: [{ id: 's1', stepNumber: 1, instruction: 'Wilt the spinach and the kale together.', durationMinutes: 3, tip: '' }],
+    };
+    const scaled = scaleRecipe(recipe, 2, { a: { name: 'kale', note: '' }, b: { name: 'spinach', note: '' } });
+    expect(scaled.steps[0].instruction).toBe('Wilt the kale and the spinach together.');
+  });
 });
 
 describe('formatQuantity', () => {

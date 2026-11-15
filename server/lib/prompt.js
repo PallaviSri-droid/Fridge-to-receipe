@@ -49,7 +49,7 @@ export function buildSubstitutePrompt(ingredientName, recipeTitle, exclusions) {
     ingredientToReplace: ingredientName,
     allergensToExcludeStrictly: exclusions,
   };
-  return `Suggest 2-4 practical substitutes for one ingredient in a recipe. Return JSON data only:\n${JSON.stringify(payload, null, 2)}`;
+  return `Suggest 2-4 practical, specific substitutes for one ingredient in a recipe. Each must be a real ingredient with a short note (include a rough ratio when it differs from 1:1). Never fabricate a swap: if no realistic substitute exists, return an empty "substitutions" array. Return JSON data only:\n${JSON.stringify(payload, null, 2)}`;
 }
 
 /** Gemini schema for the substitute endpoint. */

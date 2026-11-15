@@ -5,6 +5,14 @@ import { AVAILABILITY_LABELS } from '../lib/uiConstants.js';
 
 const GROUP_ORDER = ['available', 'to_buy', 'pantry_staple'];
 
+/** Message for the no-options case — distinguishes "none known" from "none that fit your diet". */
+function emptySwapMessage(ing, context) {
+  const restricted = (context?.diets?.length || 0) + (context?.allergens?.length || 0) > 0;
+  return restricted
+    ? `No swaps for ${ing.name} that fit your restrictions.`
+    : `No common swaps for ${ing.name}.`;
+}
+
 /**
  * Ingredient checklist grouped by availability, with real substitutions: clicking Swap
  * fetches options from the backend; choosing one overlays it; Undo restores the original.
@@ -47,7 +55,10 @@ export default function IngredientList({ recipe, ingredients, checked, onToggle,
                 <div className="ing-sub-row">
                   {swapped ? (
                     <>
-                      <span className="hint">was {ing.originalName}</span>
+                      <span className="hint">
+                        was {ing.originalName}
+                        {ing.substitutedWith?.note ? ` — ${ing.substitutedWith.note}` : ''}
+                      </span>
                       <button className="undo-link" onClick={() => subs.undo(ing.id)}><Undo2 size={12} /> undo</button>
                     </>
                   ) : opt ? (
@@ -62,7 +73,7 @@ export default function IngredientList({ recipe, ingredients, checked, onToggle,
                         ))}
                       </div>
                     ) : (
-                      <span className="hint error">{opt.error || 'No safe swaps found.'}</span>
+                      <span className="hint error">{opt.error || emptySwapMessage(ing, context)}</span>
                     )
                   ) : (
                     <button className="sub-btn" onClick={() => subs.fetchOptions(ing, context)}>

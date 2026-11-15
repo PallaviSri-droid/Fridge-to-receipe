@@ -4,6 +4,8 @@
  * quirks (missing ids, optimistic availability) that the pipeline then corrects.
  */
 
+import { substitutionsFor } from '../lib/substitutions.js';
+
 /** A well-formed recipe built loosely around the user's ingredients. */
 export function buildMockRecipe(ingredients = [], servings = 2) {
   const have = ingredients.slice(0, 6);
@@ -21,17 +23,17 @@ export function buildMockRecipe(ingredients = [], servings = 2) {
     baseServings: servings,
     dietaryTags: [],
     ingredients: [
-      ...have.map((name, i) => ({
+      ...have.map((name) => ({
         name,
         quantity: /egg|onion|clove|slice/i.test(name) ? 2 : 150,
         unit: /egg|onion|clove|slice/i.test(name) ? '' : 'g',
         kind: /egg|onion|clove|slice/i.test(name) ? 'discrete' : 'continuous',
         availability: 'available', // deliberately optimistic -> normalizer verifies it
         optional: false,
-        substitutions:
-          i === 0 ? [{ name: 'tofu', note: 'for a plant-based option' }] : [],
+        // real swaps from the knowledge base (generate filters these against exclusions)
+        substitutions: substitutionsFor(name).slice(0, 2),
       })),
-      { name: 'olive oil', quantity: 1, unit: 'tbsp', kind: 'continuous', availability: 'pantry_staple', optional: false, substitutions: [{ name: 'butter', note: 'richer flavor' }] },
+      { name: 'olive oil', quantity: 1, unit: 'tbsp', kind: 'continuous', availability: 'pantry_staple', optional: false, substitutions: substitutionsFor('olive oil').slice(0, 2) },
       { name: 'salt', quantity: null, unit: '', kind: 'qualitative', availability: 'pantry_staple', optional: false, substitutions: [] },
     ],
     steps: [
@@ -45,14 +47,9 @@ export function buildMockRecipe(ingredients = [], servings = 2) {
   };
 }
 
-/** Mock substitution output. */
+/** Mock substitution output — real, curated swaps (empty for unknown ingredients). */
 export function buildMockSubstitutions(ingredientName) {
-  return {
-    substitutions: [
-      { name: `${ingredientName} alternative (plant-based)`, note: 'Swaps in cleanly for most savory dishes.' },
-      { name: 'Olive oil', note: 'Works when the ingredient is used mainly for fat/moisture.' },
-    ],
-  };
+  return { substitutions: substitutionsFor(ingredientName) };
 }
 
 function titleCase(s) {

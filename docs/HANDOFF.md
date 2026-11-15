@@ -63,15 +63,17 @@ Model via `GEMINI_MODEL`, default rolling alias `gemini-flash-latest`. Key is ba
 add `GEMINI_API_KEY` to `server/.env` for real Gemini). Build: `npm run build`. Tests: `npm test`.
 
 ## 12. Actual test results
-**90 passed / 90** (`npx vitest run`, confirmed stable across repeated runs): 8 files —
-scaling, ingredients, storage, normalize, errors, **allergens (both directions — dairy AND
-gluten false-positives/negatives)**, and React **component** tests (unit) + api (backend, all
-10 failure modes). The suite surfaced and we
-fixed several real bugs: shared-mutable storage array; pantry-staple substring match; raw
-provider errors on the retry path returning 500 instead of 504/503; an allergen scanner that
-both missed `cheddar`/`feta`/`buttermilk` and falsely flagged `almond milk`/`peanut butter` as
-dairy; a `background-image`-driven theme-freeze on `<body>`; and an orphaned timeout promise
-causing an intermittent unhandled rejection.
+**117 passed / 117** (`npx vitest run`, confirmed stable across repeated runs): 9 files —
+scaling (incl. after-swap availability + step-text rewrite), ingredients, storage, normalize,
+errors, **allergens (both directions — dairy AND gluten false-positives/negatives)**,
+**substitutions (whole-word/longest-match, allergen + vegan/vegetarian filtering, honest
+empty for unknowns)**, and React **component** tests (unit) + api (backend, all 10 failure
+modes). The suite surfaced and we fixed several real bugs: shared-mutable storage array;
+pantry-staple substring match; raw provider errors on the retry path returning 500 instead of
+504/503; an allergen scanner that both missed `cheddar`/`feta`/`buttermilk` and falsely
+flagged `almond milk`/`peanut butter` as dairy; a `background-image`-driven theme-freeze on
+`<body>`; an orphaned timeout promise causing an intermittent unhandled rejection; and a
+placeholder substitution engine that returned nonsense swaps (now a curated knowledge base).
 
 ## 13. Production build
 `npx vite build` succeeds — 1615 modules, `dist/` ≈ 20 kB CSS + 249 kB JS (73 kB gzipped).
@@ -83,8 +85,12 @@ with grouped ingredients and step checklist, 2→4 serving scale (eggs 2→4 who
 
 ## 15. Known limitations
 Live Gemini path implemented but **not verified** without a key (runs fully on mock);
-keyword-based allergen safety net (disclosure shown); `localStorage`-only persistence; step
-text keeps the original ingredient name after a swap. Stretch items intentionally deferred.
+keyword-based allergen safety net (disclosure shown); `localStorage`-only persistence. In
+mock mode, substitutions come from a curated knowledge base (`server/lib/substitutions.js`)
+— broad coverage of common ingredients, but an unrecognized item honestly returns no swaps
+rather than a fabricated one (the real model fills this gap). After a swap, the swapped item
+is re-derived as "to buy" and step text is rewritten to the new name, but quantities are not
+auto-reconverted (ratio guidance is shown in the swap note instead). Stretch items deferred.
 
 ## 16. Future improvements
 `/api/recipes/refine` loop; shopping list from to-buy items; rewrite step text on substitution;

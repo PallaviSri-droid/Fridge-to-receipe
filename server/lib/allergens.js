@@ -9,8 +9,11 @@
 const ALLERGEN_KEYWORDS = {
   dairy: [
     'milk', 'butter', 'cheese', 'cream', 'yogurt', 'yoghurt', 'ghee', 'paneer', 'whey',
-    'casein', 'custard', 'buttermilk',
+    'casein', 'custard', 'buttermilk', 'creme fraiche', 'crème fraîche',
     'cheddar', 'feta', 'parmesan', 'parmigiano', 'mozzarella', 'brie', 'gouda', 'ricotta', 'mascarpone', 'halloumi',
+    // named cheeses with no "cheese" in the word — needed so they can't slip past the scan
+    'monterey jack', 'provolone', 'pecorino', 'grana padano', 'gruyere', 'gruyère',
+    'asiago', 'manchego', 'gorgonzola', 'havarti', 'colby',
   ],
   eggs: ['egg', 'eggs', 'mayonnaise', 'mayo', 'albumen', 'meringue'],
   nuts: ['almond', 'cashew', 'walnut', 'pecan', 'hazelnut', 'pistachio', 'macadamia', 'pine nut', 'nut', 'nuts'],
@@ -61,7 +64,7 @@ function escapeRe(s) {
 }
 
 /** Whole-word (plural-tolerant) matcher for a keyword. */
-function keywordRegex(kw) {
+export function keywordRegex(kw) {
   return new RegExp(`(^|[^a-z])${escapeRe(kw)}(s|es)?([^a-z]|$)`, 'i');
 }
 

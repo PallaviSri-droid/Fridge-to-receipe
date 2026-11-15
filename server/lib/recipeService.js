@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { AppError, classifyProviderError, RETRYABLE } from './errors.js';
 import { normalizeRecipe } from './normalize.js';
-import { resolveExclusions, scanRecipe, findViolations, CROSS_CONTAMINATION_NOTE } from './allergens.js';
+import { resolveExclusions, scanRecipe, CROSS_CONTAMINATION_NOTE } from './allergens.js';
+import { isSafeSubstitute } from './substitutions.js';
 import { SYSTEM_INSTRUCTION, buildGeneratePrompt, buildSubstitutePrompt } from './prompt.js';
 
 /**
@@ -100,6 +101,16 @@ export async function generateRecipe(provider, req) {
       throw new AppError('SAFETY_VIOLATION');
     }
 
+    // scanRecipe does not inspect inline substitutions, so filter those here — an unsafe
+    // swap must never reach the client (the UI falls back to them if /substitute fails).
+    if (exclusions.length || req.diets.length) {
+      for (const ing of recipe.ingredients) {
+        if (ing.substitutions?.length) {
+          ing.substitutions = ing.substitutions.filter((s) => isSafeSubstitute(s.name, exclusions, req.diets));
+        }
+      }
+    }
+
     // Always disclose the limits of our automated check.
     if (exclusions.length) {
       recipe.safetyNotes = [...(recipe.safetyNotes || []), CROSS_CONTAMINATION_NOTE];
@@ -112,8 +123,10 @@ export async function generateRecipe(provider, req) {
   return withRetry(attempt, retrySet);
 }
 
+// Allow an empty list: for an unknown ingredient the honest answer is "no known swaps",
+// not a fabricated one. The UI renders a clear message for the empty case.
 const SubstituteResponseSchema = z.object({
-  substitutions: z.array(SubstitutionSchema).min(1),
+  substitutions: z.array(SubstitutionSchema),
 });
 
 /**
@@ -145,15 +158,15 @@ export async function suggestSubstitutions(provider, req) {
     const result = SubstituteResponseSchema.safeParse(parsed);
     if (!result.success) throw new AppError('SCHEMA_MISMATCH');
 
-    // Drop any substitute that itself violates the exclusions — never trust the model.
-    const safe = result.data.substitutions.filter(
-      (s) => findViolations(`${s.name} ${s.note}`, exclusions).length === 0
-    );
+    // Drop any substitute that itself breaks the exclusions or diet — never trust the model.
+    // Scan the NAME only; a natural note ("not vegan", ratio text) must not disqualify a swap.
+    const safe = result.data.substitutions.filter((s) => isSafeSubstitute(s.name, exclusions, req.diets));
 
     return {
       ingredientName: req.ingredientName,
       substitutions: safe,
-      disclosure: exclusions.length ? CROSS_CONTAMINATION_NOTE : '',
+      // disclose only when we actually kept allergen-relevant swaps to vet
+      disclosure: exclusions.length && safe.length ? CROSS_CONTAMINATION_NOTE : '',
     };
   };
 
